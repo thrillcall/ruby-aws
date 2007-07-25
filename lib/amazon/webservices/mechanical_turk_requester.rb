@@ -103,7 +103,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   # * question_template will be passed as a template into ERB to generate the :Question parameter
   # * the RequesterAnnotation parameter of hit_template will also be passed through ERB
   # * hit_data_set should consist of an array of hashes defining unique instance variables utilized by question_template
-  def createHITs( hit_template, question_template, hit_data_set)
+  def createHITs( hit_template, question_template, hit_data_set )
     hit_template = hit_template.dup
     lifetime = hit_template[:LifetimeInSeconds]
     annotation_template = hit_template[:RequesterAnnotation]
@@ -134,7 +134,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   # Update a series of hits to belong to a new HitType
   # * hit_template is the array of parameters to pass to registerHITType
   # * hit_ids is a list of HITIds (strings)
-  def updateHITs(hit_template, hit_ids)
+  def updateHITs( hit_template, hit_ids )
     hit_template = hit_template.dup
     hit_template.delete :LifetimeInSeconds
     hit_template.delete :RequesterAnnotation
@@ -156,37 +156,19 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
 
 
   # Move a HIT to a new HITType with the given properties.
-  def updateHIT(hit_template, hit_id)
+  def updateHIT( hit_id, hit_template )
     hit_template = hit_template.dup
 
     hit = getHIT( :HITId => hit_id )
 
-    if hit_template[:AutoApprovalDelayInSeconds].nil?
-      hit_template[:AutoApprovalDelayInSeconds] = hit[:AutoApprovalDelayInSeconds]
-    end
+    props = %w( Title Description Keywords Reward
+                QualificationRequirement
+                AutoApprovalDelayInSeconds
+                AssignmentDurationInSeconds
+              ).collect {|str| str.to_sym }
 
-    if hit_template[:AssignmentDurationInSeconds].nil?
-      hit_template[:AssignmentDurationInSeconds] = hit[:AssignmentDurationInSeconds]
-    end
-
-    if hit_template[:Reward].nil?
-      hit_template[:Reward] = hit[:Reward]
-    end
-
-    if hit_template[:Title].nil?
-      hit_template[:Title] = hit[:Title]
-    end
-
-    if hit_template[:Keywords].nil?
-      hit_template[:Keywords] = hit[:Keywords]
-    end
-
-    if hit_template[:Description].nil?
-      hit_template[:Description] = hit[:Description]
-    end
-
-    if hit_template[:QualificationRequirement].nil?
-      hit_template[:QualificationRequirement] = hit[:QualificationRequirement]
+    props.each do |p|
+      hit_template[p] = hit[p] if hit_template[p].nil?
     end
 
     hit_type_id = registerHITType( hit_template )[:HITTypeId]
@@ -195,7 +177,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   end
 
   
-  def getHITResults(list)
+  def getHITResults( list )
     results = []
     list.each do |h|
       hit = getHIT( :HITId => h[:HITId] )
