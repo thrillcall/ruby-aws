@@ -12,7 +12,7 @@ module WebServices
 
 class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
 
-  WSDL_VERSION = "2007-03-12"
+  WSDL_VERSION = "2007-06-21"
 
   ABANDONMENT_RATE_QUALIFICATION_TYPE_ID = "00000000000000000070";
   APPROVAL_RATE_QUALIFICATION_TYPE_ID = "000000000000000000L0";
@@ -38,6 +38,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   serviceCall :ExtendHIT, :ExtendHITResult
   serviceCall :ForceExpireHIT, :ForceExpireHITResult
   serviceCall :GetHIT, :HIT, { :ResponseGroup => %w( Minimal HITDetail HITQuestion HITAssignmentSummary ) }
+  serviceCall :ChangeHITTypeOfHIT, :ChangeHITTypeOfHITResult
   
   serviceCall :SearchHITs, :SearchHITsResult
   serviceCall :GetReviewableHITs, :GetReviewableHITsResult
@@ -76,6 +77,8 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   serviceCall :SetHITTypeNotification, :SetHITTypeNotificationResult
   serviceCall :SetWorkerAcceptLimit, :SetWorkerAcceptLimitResult
   serviceCall :GetWorkerAcceptLimit, :GetWorkerAcceptLimitResult
+  serviceCall :BlockWorker, :BlockWorkerResult
+  serviceCall :UnblockWorker, :BlockWorkerResult
 
   serviceCall :GetFileUploadURL, :GetFileUploadURLResult
   serviceCall :GetAccountBalance, :GetAccountBalanceResult
@@ -127,6 +130,70 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
     }
     return :Created => created, :Failed => failed
   end
+  
+  # Update a series of hits to belong to a new HitType
+  # * hit_template is the array of parameters to pass to registerHITType
+  # * hit_ids is a list of HITIds (strings)
+  def updateHITs(hit_template, hit_ids)
+    hit_template = hit_template.dup
+    hit_template.delete :LifetimeInSeconds
+    hit_template.delete :RequesterAnnotation
+    
+    hit_type_id = registerHITType( hit_template )[:HITTypeId]
+
+    updated = []
+    failed = []
+    hit_ids.each do |hit_id|
+      begin
+        changeHITTypeOfHIT( :HITId => hit_id, :HITTypeId => hit_type_id )
+        updated << hit_id
+      rescue => e
+        failed << { :HITId => hit_id, :Error => e.message }
+      end
+    end
+    return :Updated => updated, :Failed => failed
+  end
+
+
+  # Move a HIT to a new HITType with the given properties.
+  def updateHIT(hit_template, hit_id)
+    hit_template = hit_template.dup
+
+    hit = getHIT( :HITId => hit_id )
+
+    if hit_template[:AutoApprovalDelayInSeconds].nil?
+      hit_template[:AutoApprovalDelayInSeconds] = hit[:AutoApprovalDelayInSeconds]
+    end
+
+    if hit_template[:AssignmentDurationInSeconds].nil?
+      hit_template[:AssignmentDurationInSeconds] = hit[:AssignmentDurationInSeconds]
+    end
+
+    if hit_template[:Reward].nil?
+      hit_template[:Reward] = hit[:Reward]
+    end
+
+    if hit_template[:Title].nil?
+      hit_template[:Title] = hit[:Title]
+    end
+
+    if hit_template[:Keywords].nil?
+      hit_template[:Keywords] = hit[:Keywords]
+    end
+
+    if hit_template[:Description].nil?
+      hit_template[:Description] = hit[:Description]
+    end
+
+    if hit_template[:QualificationRequirement].nil?
+      hit_template[:QualificationRequirement] = hit[:QualificationRequirement]
+    end
+
+    hit_type_id = registerHITType( hit_template )[:HITTypeId]
+
+    changeHITTypeOfHIT( :HITId => hit_id, :HITTypeId => hit_type_id )
+  end
+
   
   def getHITResults(list)
     results = []
