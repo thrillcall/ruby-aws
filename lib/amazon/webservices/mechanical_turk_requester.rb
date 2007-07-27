@@ -98,7 +98,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
                          :Version => WSDL_VERSION )
   end
   
-  # Create a series of similar hits, sharing common parameters.  Utilizes HitType
+  # Create a series of similar HITs, sharing common parameters.  Utilizes HITType
   # * hit_template is the array of parameters to pass to createHIT.
   # * question_template will be passed as a template into ERB to generate the :Question parameter
   # * the RequesterAnnotation parameter of hit_template will also be passed through ERB
@@ -131,7 +131,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
     return :Created => created, :Failed => failed
   end
   
-  # Update a series of hits to belong to a new HitType
+  # Update a series of HITs to belong to a new HITType
   # * hit_template is the array of parameters to pass to registerHITType
   # * hit_ids is a list of HITIds (strings)
   def updateHITs( hit_template, hit_ids )
@@ -155,7 +155,23 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   end
 
 
-  # Move a HIT to a new HITType with the given properties.
+  # Update a HIT with new properties.
+  # hit_id:: Id of the HIT to update
+  # hit_template:: hash ( parameter => value ) of parameters to update
+  #
+  # Acceptable attributes:
+  # * Title
+  # * Description
+  # * Keywords
+  # * Reward
+  # * QualificationRequirement
+  # * AutoApprovalDelayInSeconds
+  # * AssignmentDurationInSeconds
+  #
+  # Behind the scenes, this function retrieves the HIT, merges the HITs
+  # current attributes with any you specify, and registers a new HIT
+  # Template.  It then uses the new ChangeHITTypeOfHIT function to move
+  # your HIT to the newly-created HIT Template.
   def updateHIT( hit_id, hit_template )
     hit_template = hit_template.dup
 
