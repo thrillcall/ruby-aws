@@ -4,6 +4,7 @@
 require 'ruby-aws'
 require 'amazon/util/logging'
 require 'amazon/webservices/util/amazon_authentication_relay'
+require 'amazon/webservices/mturk/mechanical_turk_error_handler'
 require 'amazon/webservices/util/validation_exception'
 
 module Amazon
@@ -47,14 +48,17 @@ class MechanicalTurk
       end
     newargs.merge!( :Transport => transport )
     log "Generating relay with following args: #{newargs.inspect}"
-    @relay = allowOverride('Relay',args[:Relay],newargs) { |a| Amazon::WebServices::Util::AmazonAuthenticationRelay.new(a) }
+    relay = allowOverride('Relay',args[:Relay],newargs) { |a| Amazon::WebServices::Util::AmazonAuthenticationRelay.new(a) }
+    newargs.merge!( :Relay => relay )
+    log "Generating error handler with the following args: #{newargs.inspect}"
+    @errorHandler = allowOverride('ErrorHandler',args[:ErrorHandler],newargs) { |a| Amazon::WebServices::MTurk::MechanicalTurkErrorHandler.new(a) }
   end
 
   attr_accessor :host
 
   def method_missing(method,*args)
     log "Sending request: #{method} #{args.inspect}"
-    validateResponse @relay.send(method,*args)
+    @errorHandler.dispatch(method,*args)
   end
 
   private
@@ -84,6 +88,7 @@ class MechanicalTurk
     wsdl = findWSDL( args[:Name], args[:Host], args[:Version] )
     endpoint = findSOAPEndpoint( args[:Name], args[:Host] )
     require 'amazon/webservices/util/soap_transport.rb'
+    require 'timeout'
     Amazon::WebServices::Util::SOAPTransport.new( args.merge( :Wsdl => wsdl, :Endpoint => endpoint ) )
   end
 
