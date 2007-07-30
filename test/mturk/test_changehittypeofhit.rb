@@ -27,7 +27,7 @@ class TestChangeHITTypeOfHIT < Test::Unit::TestCase
     @@question ||= MTurk::QuestionGenerator.build { |q| q.ask 'Have you tried changing the description of a HIT?' }
   end
 
-  def testUpdateHIT
+  def testUpdateHITMock
     @@mock.listen do |call|
       case call.name
       when :GetHIT
