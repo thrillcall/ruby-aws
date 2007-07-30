@@ -31,9 +31,9 @@ class TestChangeHITTypeOfHIT < Test::Unit::TestCase
     @@mock.listen do |call|
       case call.name
       when :GetHIT
-        {:HIT => {:HITId => call.request[:HITId], :Title => "old title", :Description => "foo"}, :Request => {} }
+        {:HIT => {:HITId => call.request[:HITId], :Title => "old title", :Description => "foo", :Request => {} } }
       when :RegisterHITType
-        {:RegisterHITTypeResult => {:HITTypeId => 'mockHITType' }, :Request => {} }
+        {:RegisterHITTypeResult => {:HITTypeId => 'mockHITType', :Request => {} } }
       else
         {}
       end
