@@ -14,6 +14,22 @@ class MechanicalTurkErrorHandler
 
   REQUIRED_PARAMETERS = [:Relay]
 
+  # Commands with these prefixes can be retried if we are unsure of success
+  RETRY_PRE = %w( search get register update disable assign set dispose )
+
+  # Max number of times to retry a call
+  MAX_RETRY = 6
+
+  # Base used in Exponential Backoff retry delay
+  BACKOFF_BASE = 2
+  # Scale factor for Exponential Backoff retry delay
+  BACKOFF_INITIAL = 0.1
+
+  # Matching pattern to find a 'Results' element in the Response
+  RESULT_PATTERN = /Result/
+  # Additional elements to be considered a 'Result' despite not matching RESULT_PATTERN
+  ACCEPTABLE_RESULTS = %w( HIT Qualification QualificationType QualificationRequest Information )
+
   def initialize( args )
     missing_parameters = REQUIRED_PARAMETERS - args.keys
     raise "Missing paramters: #{missing_parameters.join(',')}" unless missing_parameters.empty?
@@ -46,8 +62,6 @@ class MechanicalTurkErrorHandler
       raise error
     end
   end
-
-  RETRY_PRE = %w( search get register update disable assign set dispose )
 
   def methodRetryable( method )
     RETRY_PRE.each do |pre|
@@ -86,23 +100,16 @@ class MechanicalTurkErrorHandler
     end
   end
 
-  MAX_RETRY = 6
-  BACKOFF_EXPONENT = 2
-  BACKOFF_INITIAL = 0.1
-
   def canRetry( try )
     try <= MAX_RETRY
   end
 
   def doBackoff( try )
     return false unless canRetry(try)
-    delay = BACKOFF_INITIAL * ( BACKOFF_EXPONENT ** try )
+    delay = BACKOFF_INITIAL * ( BACKOFF_BASE ** try )
     sleep delay
     return true
   end
-
-  RESULT_PATTERN = /Result/
-  ACCEPTABLE_RESULTS = %w( HIT Qualification QualificationType QualificationRequest Information )
 
   def isResultTag( tag )
     tag.to_s =~ RESULT_PATTERN or ACCEPTABLE_RESULTS.include?( tag.to_s )

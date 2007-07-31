@@ -88,7 +88,6 @@ class MechanicalTurk
     wsdl = findWSDL( args[:Name], args[:Host], args[:Version] )
     endpoint = findSOAPEndpoint( args[:Name], args[:Host] )
     require 'amazon/webservices/util/soap_transport.rb'
-    require 'timeout'
     Amazon::WebServices::Util::SOAPTransport.new( args.merge( :Wsdl => wsdl, :Endpoint => endpoint ) )
   end
 
@@ -106,20 +105,6 @@ class MechanicalTurk
 
   def findRestEndpoint( name, host )
     "http://#{host}/?Service=#{name}"
-  end
-
-  RESULT_PATTERN = /Result/
-  ACCEPTABLE_RESULTS = %w( HIT Qualification QualificationType QualificationRequest Information )
-
-  def validateResponse(response)
-    log "Validating response: #{response.inspect}"
-    raise Util::ValidationException.new(response) unless response[:OperationRequest][:Errors].nil?
-    resultTag = response.keys.find {|r| r.to_s =~ RESULT_PATTERN or ACCEPTABLE_RESULTS.include?( r.to_s ) }
-    raise Util::ValidationException.new(response, "Didn't get back an acceptable result tag (got back #{response.keys.join(',')})") if resultTag.nil?
-    log "using result tag <#{resultTag}>"
-    result = response[resultTag]
-    raise Util::ValidationException.new(response) unless result[:Request][:Errors].nil?
-    response
   end
 
 end # MTurk
