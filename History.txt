@@ -4,6 +4,9 @@
 * Updated for Mechanical Turk's 2007-06-21 WSDL (updateHIT, blockWorker)
 * Added enhanced error handling system with retry logic
 
+== 1 minor enhancement
+* Added "require 'rubygems'" to the sample applications
+
 == 1.0.0 / 2007-07-13
 
 === 1 major enhancement
