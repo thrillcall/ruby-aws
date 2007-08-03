@@ -4,8 +4,10 @@
 * Updated for Mechanical Turk's 2007-06-21 WSDL (updateHIT, blockWorker)
 * Added enhanced error handling system with retry logic
 
-== 1 minor enhancement
-* Added "require 'rubygems'" to the sample applications
+== 3 minor enhancements
+* Samples try to require rubygems
+* BlankSlate now disposes hits with pending assignments (approves them)
+* BlankSlate now aborts when it gets an Interrupt (CTRL-C)
 
 == 1.0.0 / 2007-07-13
 
