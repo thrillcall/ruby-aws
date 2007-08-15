@@ -138,4 +138,23 @@ class TestMockMechanicalTurkRequester < Test::Unit::TestCase
     # TODO
   end
 
+  def testSimplifyAnswer
+    rawAnswer = <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<QuestionFormAnswers xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2005-10-01/QuestionFormAnswers.xsd">
+  <Answer>
+    <QuestionIdentifier>1</QuestionIdentifier>
+    <FreeText>yes, sir</FreeText>
+  </Answer>
+  <Answer>
+    <QuestionIdentifier>pudding</QuestionIdentifier>
+    <SelectionIdentifier>B+</SelectionIdentifier>
+  </Answer>
+</QuestionFormAnswers>
+EOF
+    expected = { 1 => 'yes, sir', 'pudding' => 'B+' }
+    result = @mturk.simplifyAnswer( rawAnswer )
+    assert_equal expected, result
+  end
+
 end
