@@ -50,7 +50,52 @@ class TestMockMechanicalTurkRequester < Test::Unit::TestCase
   end
 
   def testCreateHITs
-    # TODO
+    @mock.listen do |call|
+      {:RegisterHITTypeResult => {:HITTypeId => 'specialType', :Request => {}} } if call.name == :RegisterHITType
+    end
+
+    template = { :Arg1 => 'Param2', :RequesterAnnotation => 'blub' }
+    question_template = "blarg <%= @zip %> foo"
+    data_set = [ { :zip => 'poodle' }, { :zip => 'fizz' } ]
+
+    result = @mturk.createHITs( template, question_template, data_set )
+
+    assert_equal 2, result[:Created].size
+    assert_equal 0, result[:Failed].size
+
+    register_call = @mock.next
+    assert_equal :RegisterHITType, register_call.name
+    assert_equal( 
+                 { :MaxAssignments=>1, # default
+                   :AssignmentDurationInSeconds=>3600, # default
+                   :AutoApprovalDelayInSeconds=>604800, # default
+                   :Arg1=>"Param2" # there's our arg!
+                 },
+                 register_call.request )
+    expected_questions = [ "blarg poodle foo", "blarg fizz foo" ]
+    @mock.each do |call|
+      assert_equal :CreateHIT, call.name
+      assert_equal 'specialType', call.request[:HITTypeId]
+      assert_equal call.request[:Question], expected_questions.delete( call.request[:Question] )
+    end
+  end
+
+  def testCreatHITsWithFailure
+    @mock.listen do |call|
+      raise "Mock hates you" if call.request[:Question] and call.request[:Question] =~ /poodle/
+      {:RegisterHITTypeResult => {:HITTypeId => 'specialType', :Request => {}} } if call.name == :RegisterHITType
+    end
+
+    template = { :Arg1 => 'Param2', :RequesterAnnotation => 'blub' }
+    question_template = "blarg <%= @zip %> foo"
+    data_set = [ { :zip => 'poodle' }, { :zip => 'fizz' } ]
+
+    result = @mturk.createHITs( template, question_template, data_set )
+
+    assert_equal 1, result[:Created].size
+    assert_equal 1, result[:Failed].size
+
+    assert_equal "Mock hates you", result[:Failed].first[:Error]
   end
 
   def testGetHITResults
