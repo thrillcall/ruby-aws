@@ -1,3 +1,10 @@
+== PreRelease
+
+== 3 minor enhancements
+* createHITs now supports MaxAssignments correctly
+* Generate .zip file
+* Documentation correction
+
 == 1.1.0 / 2007-08-06
 
 === 2 major enhancements
