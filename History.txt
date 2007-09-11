@@ -1,9 +1,10 @@
 == PreRelease
 
-== 3 minor enhancements
+== 4 minor enhancements
 * createHITs now supports MaxAssignments correctly
 * Generate .zip file
 * Documentation correction
+* Enhanced test coverage
 
 == 1.1.0 / 2007-08-06
 
