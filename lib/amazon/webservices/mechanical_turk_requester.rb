@@ -21,6 +21,8 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   SUBMISSION_RATE_QUALIFICATION_TYPE_ID = "00000000000000000000";
   LOCALE_QUALIFICATION_TYPE_ID = "00000000000000000071";
 
+  THREADPOOL_SIZE = 5
+
   serviceCall :RegisterHITType, :RegisterHITTypeResult, {
                                                           :AssignmentDurationInSeconds => 60*60,
                                                           :AutoApprovalDelayInSeconds => 60*60*24*7
@@ -113,25 +115,31 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
     hit_template.delete :RequesterAnnotation
     
     ht = registerHITType( hit_template )[:HITTypeId]
-  
+ 
+    tp = Amazon::Util::ThreadPool.new THREADPOOL_SIZE
+
     created = []
     failed = []
-    hit_data_set.each { |hit_data|
-      begin
-        b = Amazon::Util::Binder.new( hit_data )
-        annotation = b.erb_eval( annotation_template )
-        numassignments = b.erb_eval( numassignments_template.to_s ).to_i
-        question = b.erb_eval( question_template )
-        created << self.createHIT( :HITTypeId => ht, 
-                                   :LifetimeInSeconds => lifetime, 
-                                   :MaxAssignments => ( hit_data[:MaxAssignments] || numassignments || 1 ),
-                                   :Question => question, 
-                                   :RequesterAnnotation => ( hit_data[:RequesterAnnotation] || annotation || "") 
-                                 )
-      rescue => e
-        failed << hit_data.merge( :Error => e.message )
-      end
-    }
+    hit_data_set.each do |hd|
+      tp.addWork(hd) do |hit_data|
+        begin
+          b = Amazon::Util::Binder.new( hit_data )
+          annotation = b.erb_eval( annotation_template )
+          numassignments = b.erb_eval( numassignments_template.to_s ).to_i
+          question = b.erb_eval( question_template )
+          created << self.createHIT( :HITTypeId => ht, 
+                                     :LifetimeInSeconds => lifetime, 
+                                     :MaxAssignments => ( hit_data[:MaxAssignments] || numassignments || 1 ),
+                                     :Question => question, 
+                                     :RequesterAnnotation => ( hit_data[:RequesterAnnotation] || annotation || "") 
+                                   )
+        rescue => e
+          failed << hit_data.merge( :Error => e.message )
+        end
+      end # tp.addWork
+    end # hit_data_set.each
+    tp.finish
+
     return :Created => created, :Failed => failed
   end
   
@@ -145,16 +153,22 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
     
     hit_type_id = registerHITType( hit_template )[:HITTypeId]
 
+    tp = Amazon::Util::ThreadPool.new THREADPOOL_SIZE
+
     updated = []
     failed = []
-    hit_ids.each do |hit_id|
-      begin
-        changeHITTypeOfHIT( :HITId => hit_id, :HITTypeId => hit_type_id )
-        updated << hit_id
-      rescue => e
-        failed << { :HITId => hit_id, :Error => e.message }
-      end
-    end
+    hit_ids.each do |hid|
+      tp.addWork(hid) do |hit_id|
+        begin
+          changeHITTypeOfHIT( :HITId => hit_id, :HITTypeId => hit_type_id )
+          updated << hit_id
+        rescue => e
+          failed << { :HITId => hit_id, :Error => e.message }
+        end
+      end # tp.addWork
+    end # hit_ids.each
+    tp.finish
+
     return :Updated => updated, :Failed => failed
   end
 
@@ -197,12 +211,16 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   
   def getHITResults( list )
     results = []
-    list.each do |h|
-      hit = getHIT( :HITId => h[:HITId] )
-      getAssignmentsForHITAll( :HITId => h[:HITId] ).each {|assignment|
-        results << ( hit.merge( assignment ) )
-      }
+    tp = Amazon::Util::ThreadPool.new THREADPOOL_SIZE
+    list.each do |line|
+      tp.addWork(line) do |h|
+        hit = getHIT( :HITId => h[:HITId] )
+        getAssignmentsForHITAll( :HITId => h[:HITId] ).each {|assignment|
+          results << ( hit.merge( assignment ) )
+        }
+      end
     end
+    tp.finish
     results.flatten
   end
   
