@@ -54,18 +54,29 @@ class ConvenienceWrapper
   def self.paginate( method, elementTag, pageSize=25 )
     method = method.to_s
     all_name = ( method[0..0].downcase + method[1..-1] + "All" ).to_sym
+    iterator_name = ( method[0..0].downcase + method[1..-1] + "Iterator" ).to_sym
     method = ( method[0..0].downcase + method[1..-1] ).to_sym
 
     raise 'Stop redifining service methods!' if self.instance_methods.include? name.to_s
 
     define_method( all_name ) do |*params|
       userArgs = params[0] || {}
-      args = {:PageSize => pageSize}.merge( userArgs )
+      args = {:PageSize => pageSize}.merge( userArgs ) # allow user to override page size
       lazy = Amazon::Util::LazyResults.new do |pageNumber|
-        pageArgs = {:PageNumber => pageNumber}.merge( args )
+        pageArgs = args.merge({:PageNumber => pageNumber}) # don't allow override of page number
         self.send( method, pageArgs)[elementTag]
       end
       return lazy
+    end
+
+    define_method( iterator_name ) do |*params|
+      userArgs = params[0] || {}
+      args = {:PageSize => pageSize}.merge( userArgs ) # allow user to override page size
+      iter = Amazon::Util::PaginatedIterator.new do |pageNumber|
+        pageArgs = args.merge({:PageNumber => pageNumber}) # don't allow override of page number
+        self.send( method, pageArgs)[elementTag]
+      end
+      return iter
     end
 
   end
