@@ -8,37 +8,25 @@ begin ; require 'rubygems' ; rescue LoadError ; end
 # The BlankSlate sample application disposes all of your HITs on sandbox
 
 require 'ruby-aws'
-@mturk = Amazon::WebServices::MechanicalTurkRequester.new :Host => :Sandbox, :Transport => :REST
-
+@mturk = Amazon::WebServices::MechanicalTurkRequester.new :Host => :Sandbox
 require 'amazon/util/threadpool'
 
 def forceExpire(id)
-#  print "Ensuring HIT #{id} is expired: "
-  begin
-    @mturk.forceExpireHIT( :HITId => id )
-  rescue => e
-    #raise e unless e.message == 'AWS.MechanicalTurk.InvalidHITState'
-  end
-#  puts "OK"
+  @mturk.forceExpireHIT( :HITId => id )
+rescue
 end
 
 def approveRemainingAssignments(id)
-#  print "Approving remaining assignments for HIT #{id}: "
-  count = 0
   @mturk.getAssignmentsForHITAll( :HITId => id ).each do |assignment|
     begin
       @mturk.approveAssignment :AssignmentId => assignment[:AssignmentId] if assignment[:Status] == 'Pending'
-    count += 1
-    rescue => e
+    rescue
     end
   end
-#  puts "OK (Approved #{count})"
 end
 
 def dispose(id)
-#  print "Disposing HIT #{id}: "
   @mturk.disposeHIT( :HITId => id )
-#  puts "OK"
 end
 
 def purge
