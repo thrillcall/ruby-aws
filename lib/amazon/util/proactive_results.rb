@@ -19,8 +19,6 @@ class ProactiveResults
   def initialize( exception_handler=nil, &feeder )
     @feeder = feeder
     @eh = exception_handler
-    @pending = [].extend(MonitorMixin)
-    @gotit = @pending.new_cond
     @tp = nil
     self.flush
   end
@@ -30,7 +28,8 @@ class ProactiveResults
     @tp.finish unless @tp.nil?
     @tp = ThreadPool.new(THREADPOOL_SIZE, @eh)
     @done = false
-    @pending.clear
+    @pending = Queue.new
+    @results = Queue.new
     @truth = []
     1.upto(THREADPOOL_SIZE) do |page|
       getPage(page)
@@ -67,46 +66,47 @@ class ProactiveResults
   end
 
   def inspect
-    @pending.synchronize do
-      "#<Amazon::Util::ProactiveResults truth_size=#{@truth.size} pending_pages=#{@pending.inspect}>"
-    end
+    "#<Amazon::Util::ProactiveResults truth_size=#{@truth.size} pending_pages=#{@pending.size}>"
   end
 
   private
 
   def getPage(num)
-    @pending.synchronize do
-      @pending << num
-      @tp.addWork( num ) do |page|
-        worker(page)
-      end
-    end
+    @pending << :something
+    @tp.addWork(num) { |n| worker(n) }
   end
 
   def worker(page)
+    res = []
     begin
       res = @feeder.call( page )
-    rescue Exception => e
-      @pending.synchronize { @pending.delete page }
-      raise e
-    end
-    @pending.synchronize do
+    ensure
       if res.nil? || res.empty?
-        # we're done
+        @results << []
       else
-        @truth += res
+        @results << res
         getPage( page + THREADPOOL_SIZE )
       end
-      @pending.delete page
-      @gotit.signal
+      @pending.pop true
     end
   end
 
   def feedme
-    @pending.synchronize do
-      current_size = @truth.size
-      @gotit.wait_until { @pending.size == 0 || @truth.size > current_size }
-      @done = (@pending.size == 0)
+    return if @done
+    while true
+      begin
+        res = @results.pop true
+        unless res.empty?
+          @truth += res
+          return
+        end
+      rescue
+        if @pending.empty?
+          @done = true
+          return
+        end
+        sleep(0.1)
+      end
     end
   end
 
