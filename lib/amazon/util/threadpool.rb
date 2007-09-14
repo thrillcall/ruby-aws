@@ -8,23 +8,27 @@ module Util
   
 class ThreadPool
 
-  def initialize( num_threads )
+  def initialize( num_threads, exception_handler=nil )
     @work = Queue.new
     @threads = ThreadGroup.new
     num_threads.times do
-      worker_thread = Thread.new { workerProcess }
+      worker_thread = Thread.new { workerProcess(exception_handler) }
       @threads.add worker_thread
     end
   end
 
-  def workerProcess
+  def workerProcess( exception_handler=nil )
     begin
       workitem = @work.pop
       return if workitem == :Die
       begin
         workitem.block.call( *workitem.args )
       rescue Exception => e
-        print "Worker thread has thrown an exception: "+e.to_s+"\n"
+        if exception_handler.nil?
+          print "Worker thread has thrown an exception: "+e.to_s+"\n"
+        else
+          exception_handler.call(workitem)
+        end
       end
     end until false
   end

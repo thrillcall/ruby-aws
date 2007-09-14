@@ -55,6 +55,7 @@ class ConvenienceWrapper
     method = method.to_s
     all_name = ( method[0..0].downcase + method[1..-1] + "All" ).to_sym
     iterator_name = ( method[0..0].downcase + method[1..-1] + "Iterator" ).to_sym
+    proactive_name = ( method[0..0].downcase + method[1..-1] + "AllProactive" ).to_sym
     method = ( method[0..0].downcase + method[1..-1] ).to_sym
 
     raise 'Stop redifining service methods!' if self.instance_methods.include? name.to_s
@@ -77,6 +78,16 @@ class ConvenienceWrapper
         self.send( method, pageArgs)[elementTag]
       end
       return iter
+    end
+
+    define_method( proactive_name ) do |*params|
+      userArgs = params[0] || {}
+      args = {:PageSize => pageSize}.merge( userArgs ) # allow user to override page size
+      lazy = Amazon::Util::ProactiveResults.new do |pageNumber|
+        pageArgs = args.merge({:PageNumber => pageNumber}) # don't allow override of page number
+        self.send( method, pageArgs)[elementTag]
+      end
+      return lazy
     end
 
   end

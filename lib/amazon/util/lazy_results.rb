@@ -16,7 +16,7 @@ class LazyResults
     @iterator = PaginatedIterator.new( &feeder )
     flush
   end
-  
+
   # clear the result set and start over again
   def flush
     @truth = []
@@ -34,19 +34,19 @@ class LazyResults
     feedme while !@iterator.done and index >= @truth.size
     return @truth[index]
   end
-  
+
   # fully populate the result set and return a true array
   def to_a
     feedme until @iterator.done
     return @truth.dup
   end
-  
+
   def inspect
     "#<Amazon::Util::LazyResults truth_size=#{@truth.size} page=#{@page} done=#{@done}>"
   end
 
   private
-  
+
   # fetch the next item from the iterator and stick it in @truth
   def feedme
     item = @iterator.next
@@ -54,6 +54,6 @@ class LazyResults
   end
 
 end # LazyResults
-  
+
 end # Amazon::Util
 end # Amazon
