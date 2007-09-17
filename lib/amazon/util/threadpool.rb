@@ -37,8 +37,12 @@ class ThreadPool
     @work.push( WorkItem.new( args, &block ) )
   end
 
+  def threadcount
+    @threads.list.length
+  end
+
   def noMoreWork
-    @threads.list.length.times { @work << :Die }
+    threadcount.times { @work << :Die }
   end
 
   def join
@@ -50,6 +54,21 @@ class ThreadPool
   def finish
     noMoreWork
     join
+  end
+
+  def sync
+    q = Queue.new
+    s = Set.new
+    t = threadcount
+
+    t.times do
+      addWork do
+        q << Thread.current
+        sleep(0.1) until s.size >= t
+      end
+    end
+
+    s << q.pop until s.size >= t
   end
 
   class WorkItem
