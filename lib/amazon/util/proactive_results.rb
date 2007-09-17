@@ -9,7 +9,7 @@ module Util
 
 # ProactiveResults is not as lazy as LazyResults
 # The constructor takes a block which should accept a pagenumber
-#  and return a page worth of results.
+# and return a page worth of results.
 # note: Does not guarantee order of results
 class ProactiveResults
   include Enumerable
@@ -37,7 +37,7 @@ class ProactiveResults
   end
 
   # iterate over entire result set, waiting for
-  #  threads to finish where necessary
+  # threads to finish where necessary
   def each( &block ) # :yields: item
     index = 0
     while true
@@ -52,20 +52,20 @@ class ProactiveResults
   end
 
   # index into the result set. if we haven't
-  #  loaded enough, will wait until we have
+  # loaded enough, will wait until we have
   def []( index )
     feedme while !@done and index >= @truth.size
     return @truth[index]
   end
 
   # wait for the entire results set to be populated,
-  #  then return an array of the results
+  # then return an array of the results
   def to_a
     feedme until @done
     return @truth.dup
   end
 
-  def inspect
+  def inspect # :nodoc:
     "#<Amazon::Util::ProactiveResults truth_size=#{@truth.size} pending_pages=#{@pending.size}>"
   end
 

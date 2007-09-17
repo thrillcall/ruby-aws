@@ -8,7 +8,7 @@ module Util
 
 # This class provides a wrapper for lazy evaluation of results.
 # The constructor takes a block which should accept a pagenumber
-#  and return a page worth of results.
+# and return a page worth of results.
 class LazyResults
   include Enumerable
 
@@ -41,7 +41,7 @@ class LazyResults
     return @truth.dup
   end
 
-  def inspect
+  def inspect # :nodoc:
     "#<Amazon::Util::LazyResults truth_size=#{@truth.size} page=#{@page} done=#{@done}>"
   end
 

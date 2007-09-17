@@ -5,15 +5,15 @@ module Amazon
 module Util
 
 # PaginatedIterator provides an iterator interface to a paginated
-#  dataset, buffering the current page. It can be used to stream
-#  large result sets which would not fit into memory or only need
-#  to be processed in a single pass.
+# dataset, buffering the current page. It can be used to stream
+# large result sets which would not fit into memory or only need
+# to be processed in a single pass.
 class PaginatedIterator
 
   # feeder should be a block that accepts a pagenumber and 
-  #  returns an array containing the corresponding page
-  #  worth of results. It should return an empty array when
-  #  there are no more results in the dataset.
+  # returns an array containing the corresponding page
+  # worth of results. It should return an empty array when
+  # there are no more results in the dataset.
   def initialize( &feeder )
     @feeder = feeder
     restart
