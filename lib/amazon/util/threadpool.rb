@@ -2,6 +2,7 @@
 # License::   Apache License, Version 2.0
 
 require 'thread'
+require 'set'
 
 module Amazon
 module Util
