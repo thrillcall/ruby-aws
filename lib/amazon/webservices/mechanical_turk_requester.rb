@@ -115,7 +115,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
     hit_template.delete :MaxAssignments
     hit_template.delete :RequesterAnnotation
 
-    ht = registerHITType( hit_template )[:HITTypeId]
+    ht = hit_template[:HITTypeId] || registerHITType( hit_template )[:HITTypeId]
 
     tp = Amazon::Util::ThreadPool.new THREADPOOL_SIZE
 
