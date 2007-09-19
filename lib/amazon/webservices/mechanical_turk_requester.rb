@@ -22,7 +22,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   SUBMISSION_RATE_QUALIFICATION_TYPE_ID = "00000000000000000000";
   LOCALE_QUALIFICATION_TYPE_ID = "00000000000000000071";
 
-  THREADPOOL_SIZE = 5
+  DEFAULT_THREADCOUNT = 10
 
   serviceCall :RegisterHITType, :RegisterHITTypeResult, {
                                                           :AssignmentDurationInSeconds => 60*60,
@@ -33,7 +33,6 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
                                   :AssignmentDurationInSeconds => 60*60,
                                   :AutoApprovalDelayInSeconds => 60*60*24*7,
                                   :LifetimeInSeconds => 60*60*24,
-                                  :ResponseGroup => %w( Minimal HITDetail HITQuestion )
                                 }
 
   serviceCall :DisableHIT, :DisableHITResult
@@ -95,6 +94,8 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
       loaded = Amazon::Util::DataReader.load( args[:Config], :YAML )
       newargs = args.merge loaded.inject({}) {|a,b| a[b[0].to_sym] = b[1] ; a }
     end
+    @threadcount = args[:ThreadCount].to_i
+    @threadcount = DEFAULT_THREADCOUNT unless @threadcount >= 1
     raise "Cannot override WSDL version ( #{WSDL_VERSION} )" unless args[:Version].nil? or args[:Version].equals? WSDL_VERSION
     super newargs.merge( :Name => :AWSMechanicalTurkRequester,
                          :ServiceClass => Amazon::WebServices::MechanicalTurk,
@@ -117,7 +118,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
 
     ht = hit_template[:HITTypeId] || registerHITType( hit_template )[:HITTypeId]
 
-    tp = Amazon::Util::ThreadPool.new THREADPOOL_SIZE
+    tp = Amazon::Util::ThreadPool.new @threadcount
 
     created = [].extend(MonitorMixin)
     failed = [].extend(MonitorMixin)
@@ -129,10 +130,10 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
           numassignments = b.erb_eval( numassignments_template.to_s ).to_i
           question = b.erb_eval( question_template )
           result = self.createHIT( :HITTypeId => ht,
-                                     :LifetimeInSeconds => lifetime,
-                                     :MaxAssignments => ( hit_data[:MaxAssignments] || numassignments || 1 ),
-                                     :Question => question,
-                                     :RequesterAnnotation => ( hit_data[:RequesterAnnotation] || annotation || "")
+                                   :LifetimeInSeconds => lifetime,
+                                   :MaxAssignments => ( hit_data[:MaxAssignments] || numassignments || 1 ),
+                                   :Question => question,
+                                   :RequesterAnnotation => ( hit_data[:RequesterAnnotation] || annotation || "")
                                  )
           created.synchronize do
             created << result
@@ -159,7 +160,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
 
     hit_type_id = registerHITType( hit_template )[:HITTypeId]
 
-    tp = Amazon::Util::ThreadPool.new THREADPOOL_SIZE
+    tp = Amazon::Util::ThreadPool.new @threadcount
 
     updated = [].extend(MonitorMixin)
     failed = [].extend(MonitorMixin)
@@ -221,7 +222,7 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
 
   def getHITResults( list )
     results = [].extend(MonitorMixin)
-    tp = Amazon::Util::ThreadPool.new THREADPOOL_SIZE
+    tp = Amazon::Util::ThreadPool.new @threadcount
     list.each do |line|
       tp.addWork(line) do |h|
         hit = getHIT( :HITId => h[:HITId] )
