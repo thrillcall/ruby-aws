@@ -39,7 +39,7 @@ class TestMockMechanicalTurkRequester < Test::Unit::TestCase
     default_call = @mock.next # request from convenience layer
     request = default_call.request
     assert !request.keys.empty?
-    expected = [:MaxAssignments, :AssignmentDurationInSeconds, :AutoApprovalDelayInSeconds, :LifetimeInSeconds, :ResponseGroup]
+    expected = [:MaxAssignments, :AssignmentDurationInSeconds, :AutoApprovalDelayInSeconds, :LifetimeInSeconds]
     assert_equal [], request.keys - expected, 'Convenience layer should not populate unexpected arguments'
     assert_equal [], expected - request.keys, 'Convenience layer should populate all expected arguments'
 
