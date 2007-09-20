@@ -60,34 +60,19 @@ class ConvenienceWrapper
 
     raise 'Stop redifining service methods!' if self.instance_methods.include? name.to_s
 
-    define_method( all_name ) do |*params|
-      userArgs = params[0] || {}
-      args = {:PageSize => pageSize}.merge( userArgs ) # allow user to override page size
-      lazy = Amazon::Util::LazyResults.new do |pageNumber|
-        pageArgs = args.merge({:PageNumber => pageNumber}) # don't allow override of page number
-        self.send( method, pageArgs)[elementTag]
-      end
-      return lazy
-    end
+    processors = { all_name => Amazon::Util::LazyResults,
+                   iterator_name => Amazon::Util::PaginatedIterator,
+                   proactive_name => Amazon::Util::ProactiveResults }
 
-    define_method( iterator_name ) do |*params|
-      userArgs = params[0] || {}
-      args = {:PageSize => pageSize}.merge( userArgs ) # allow user to override page size
-      iter = Amazon::Util::PaginatedIterator.new do |pageNumber|
-        pageArgs = args.merge({:PageNumber => pageNumber}) # don't allow override of page number
-        self.send( method, pageArgs)[elementTag]
+    processors.each do |name,processor|
+      define_method( name ) do |*params|
+        userArgs = params[0] || {}
+        args = {:PageSize => pageSize}.merge( userArgs ) # allow user to override page size
+        return processor.new do |pageNumber|
+          pageArgs = args.merge({:PageNumber => pageNumber}) # don't allow override of page number
+          self.send( method, pageArgs)[elementTag]
+        end
       end
-      return iter
-    end
-
-    define_method( proactive_name ) do |*params|
-      userArgs = params[0] || {}
-      args = {:PageSize => pageSize}.merge( userArgs ) # allow user to override page size
-      lazy = Amazon::Util::ProactiveResults.new do |pageNumber|
-        pageArgs = args.merge({:PageNumber => pageNumber}) # don't allow override of page number
-        self.send( method, pageArgs)[elementTag]
-      end
-      return lazy
     end
 
   end
