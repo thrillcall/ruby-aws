@@ -30,9 +30,12 @@ class ThreadPool
   # add work to the queue
   # pass any number of arguments, they will be passed on to the block.
   def addWork( *args, &block )
-    @work.push( WorkItem.new( args, &block ) )
+    item = WorkItem.new( args, &block )
+    @work.push( item )
+    item
   end
 
+  # how many worker threads are there?
   def threadcount
     @threads.list.length
   end
@@ -51,19 +54,33 @@ class ThreadPool
   end
 
   # wait for the currently queued work to finish
+  # (This freezes up the entire pool)
   def sync
-    q = Queue.new
-    s = Set.new
     t = threadcount
 
-    t.times do
-      addWork do
-        q << Thread.current
-        sleep(0.1) until s.size >= t
+    if t < 2
+      item = addWork { :sync }
+      return item.getResult
+    end
+
+    q = Queue.new
+    items = []
+
+    items << addWork do
+      q.pop
+    end
+
+    (t-2).times do |t|
+      items << addWork(t) do |i|
+        items[i].getResult
       end
     end
 
-    s << q.pop until s.size >= t
+    addWork do
+      q.push :sync
+    end
+
+    items.last.getResult
   end
 
   private
@@ -73,7 +90,7 @@ class ThreadPool
       workitem = @work.pop
       return if workitem == :Die
       begin
-        workitem.block.call( *workitem.args )
+        workitem.run
       rescue Exception => e
         if exception_handler.nil?
           print "Worker thread has thrown an exception: "+e.to_s+"\n"
@@ -89,6 +106,19 @@ class ThreadPool
     def initialize( args, &block )
       @args = args
       @block = block
+      @result = Queue.new
+    end
+    def run
+      res = @block.call( *@args)
+      @result.push res
+    rescue Exception => e
+      @result.push e
+      raise e
+    end
+    def getResult
+      value = @result.pop
+      @result = [value]
+      value
     end
   end
 

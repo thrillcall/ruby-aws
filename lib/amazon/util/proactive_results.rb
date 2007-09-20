@@ -1,7 +1,7 @@
 # Copyright:: Copyright (c) 2007 Amazon Technologies, Inc.
 # License::   Apache License, Version 2.0
 
-require 'thread'
+require 'monitor'
 require 'amazon/util/threadpool'
 
 module Amazon
@@ -10,7 +10,6 @@ module Util
 # ProactiveResults is not as lazy as LazyResults
 # The constructor takes a block which should accept a pagenumber
 # and return a page worth of results.
-# note: Does not guarantee order of results
 class ProactiveResults
   include Enumerable
 
@@ -28,8 +27,8 @@ class ProactiveResults
     @tp.finish unless @tp.nil?
     @tp = ThreadPool.new(THREADPOOL_SIZE, @eh)
     @done = false
-    @pending = Queue.new
-    @results = Queue.new
+    @inflight = [].extend(MonitorMixin)
+    @current_page = 1
     @truth = []
     1.upto(THREADPOOL_SIZE) do |page|
       getPage(page)
@@ -72,8 +71,10 @@ class ProactiveResults
   private
 
   def getPage(num)
-    @pending << :something
-    @tp.addWork(num) { |n| worker(n) }
+    @inflight.synchronize do
+      workitem = @tp.addWork(num) { |n| worker(n) }
+      @inflight[num] = workitem
+    end
   end
 
   def worker(page)
@@ -81,32 +82,31 @@ class ProactiveResults
     begin
       res = @feeder.call( page )
     ensure
-      if res.nil? || res.empty?
-        @results << []
-      else
-        @results << res
-        getPage( page + THREADPOOL_SIZE )
-      end
-      @pending.pop true
+      getPage( page + THREADPOOL_SIZE ) unless (res.nil? || res.empty?)
     end
   end
 
   def feedme
     return if @done
-    while true
-      begin
-        res = @results.pop true
-        unless res.empty?
-          @truth += res
-          return
-        end
-      rescue
-        if @pending.empty?
-          @done = true
-          return
-        end
-        sleep(0.1)
+    item = nil
+    @inflight.synchronize do
+      if @inflight[@current_page].nil?
+        raise "I'm confused #{@inflight.inspect}" unless [] == ( @inflight - [nil] )
+        @done = true
+        return
       end
+      item = @inflight[@current_page]
+      @inflight[@current_page] = nil # clear out our references
+      @current_page += 1
+    end
+    res = item.getResult
+    case res
+    when Array
+      @truth += res
+    when Exception, NilClass
+      # ignore
+    else
+      raise "Unexpected result type: #{res.class}"
     end
   end
 
