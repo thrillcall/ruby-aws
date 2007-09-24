@@ -14,7 +14,7 @@ module Util
 class ThreadPool
 
   # First arg is the thread count.  Threads will be created once and wait
-  # for work ( no performance penalty, since they're waiting on a a Queue.
+  # for work ( no performance penalty, since they're waiting on a Queue.
   # Second arg (optional) is a proc to be used as an exception handler. If
   # this argument is passed in and the thread encounters an uncaught
   # exception, the proc will be called with the exception as the only argument.

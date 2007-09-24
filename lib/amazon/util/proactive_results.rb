@@ -91,7 +91,7 @@ class ProactiveResults
     item = nil
     @inflight.synchronize do
       if @inflight[@current_page].nil?
-        raise "I'm confused #{@inflight.inspect}" unless [] == ( @inflight - [nil] )
+        raise "This should be the last page! #{@current_page} #{@inflight.inspect}" unless [] == ( @inflight - [nil] )
         @done = true
         return
       end
