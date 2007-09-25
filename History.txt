@@ -10,6 +10,7 @@
 
 === 1 minor enhancements
 * Enhanced test coverage
+* Rest transport now default (previously SOAP)
 
 == 1.1.1 / 2007-08-28
 
