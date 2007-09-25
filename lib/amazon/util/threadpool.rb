@@ -40,12 +40,13 @@ class ThreadPool
     @threads.list.length
   end
 
-  # kill all the threads
+  # request thread completion
+  # No more work will be performed
   def noMoreWork
-    threadcount.times { @work << :Die }
+    threadcount.times { @work << :Finish }
   end
 
-  # kill all threads and wait for them to die
+  # request thread completion and wait for them to finish
   def finish
     noMoreWork
     @threads.list.each do |t|
@@ -54,7 +55,7 @@ class ThreadPool
   end
 
   # wait for the currently queued work to finish
-  # (This freezes up the entire pool)
+  # (This freezes up the entire pool, temporarily)
   def sync
     t = threadcount
 
@@ -86,9 +87,9 @@ class ThreadPool
   private
 
   def workerProcess( exception_handler=nil )
-    begin
+    while true
       workitem = @work.pop
-      return if workitem == :Die
+      return if workitem == :Finish
       begin
         workitem.run
       rescue Exception => e
@@ -98,7 +99,7 @@ class ThreadPool
           exception_handler.call(workitem)
         end
       end
-    end until false
+    end
   end
 
   class WorkItem
