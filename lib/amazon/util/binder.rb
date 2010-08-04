@@ -28,7 +28,7 @@ class Binder
   end
   
   # Helper method to simplify ERB evaluation
-  def erb_eval( template )
+  def old_erb_eval( template )
     buffer = ""
     c = ERB::Compiler.new("")
     c.put_cmd = "buffer <<" if c.respond_to? :put_cmd=
@@ -36,6 +36,10 @@ class Binder
     compiled = c.compile template
     eval compiled
     return buffer
+  end
+  def erb_eval( template )
+    t = ERB.new template
+    return t.result(binding)
   end
 
 end # Binder

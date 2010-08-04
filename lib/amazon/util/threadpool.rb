@@ -71,8 +71,8 @@ class ThreadPool
       q.pop
     end
 
-    (t-2).times do |t|
-      items << addWork(t) do |i|
+    (t-2).times do |z|
+      items << addWork(z) do |i|
         items[i].getResult
       end
     end

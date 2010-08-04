@@ -247,11 +247,11 @@ class MechanicalTurkRequester < Amazon::WebServices::Util::ConvenienceWrapper
   def simplifyAnswer( answerXML )
     answerHash = Amazon::WebServices::Util::XMLSimplifier.simplify REXML::Document.new(answerXML)
     list = [answerHash[:Answer]].flatten
-    list.inject({}) { |list, answer|
+    list.inject({}) { |answers, answer|
       id = answer[:QuestionIdentifier]
       result = answer[:FreeText] || answer[:SelectionIdentifier] || answer[:UploadedFileKey]
-      list[id] = result
-      list
+      answers[id] = result
+      answers
     }
   end
 

@@ -35,6 +35,7 @@ lib/amazon/webservices/util/validation_exception.rb
 lib/amazon/webservices/util/xml_simplifier.rb
 lib/ruby-aws.rb
 lib/ruby-aws/version.rb
+run_rcov.sh
 samples/mturk/best_image/BestImage.rb
 samples/mturk/best_image/best_image.properties
 samples/mturk/best_image/best_image.question

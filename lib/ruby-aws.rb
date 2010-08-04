@@ -2,9 +2,6 @@
 # License::   Apache License, Version 2.0
 
 require 'ruby-aws/version'
-
-begin ; require 'rubygems' ; rescue LoadError => e ; end
-
 require 'amazon/webservices/mechanical_turk_requester'
 
 module RubyAWS

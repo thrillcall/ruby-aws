@@ -27,10 +27,10 @@ class TestProactiveResults < Test::Unit::TestCase
 
   def testEnumerable
     result = @simple_proactive.collect
-    assert_equal @simple_data.flatten, result
+    assert_equal @simple_data.flatten, result.to_a
     assert_equal 6, @call_count
     result = @simple_proactive.collect
-    assert_equal @simple_data.flatten, result
+    assert_equal @simple_data.flatten, result.to_a
     assert_equal 6, @call_count
     minus1 = @simple_proactive.collect {|i| i-1}
     minus1.each_with_index {|i,n| assert_equal i, n }

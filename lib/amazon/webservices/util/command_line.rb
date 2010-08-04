@@ -3,7 +3,6 @@
 
 require 'optparse'
 require 'highline'
-require 'ruby-aws'
 require 'amazon/util/user_data_store'
 
 module Amazon

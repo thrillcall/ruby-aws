@@ -1,7 +1,6 @@
 # Copyright:: Copyright (c) 2007 Amazon Technologies, Inc.
 # License::   Apache License, Version 2.0
 
-require 'ruby-aws'
 require 'amazon/util/logging'
 require 'amazon/webservices/util/amazon_authentication_relay'
 require 'amazon/webservices/mturk/mechanical_turk_error_handler'

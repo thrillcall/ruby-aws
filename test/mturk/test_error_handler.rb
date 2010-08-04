@@ -96,6 +96,7 @@ class TestErrorHandler < Test::Unit::TestCase
     end
   end
 
+  if Amazon::WebServices::Util::SOAPTransport.canSOAP?
   def testSOAPFaultError
     arg = (Struct.new :faultcode, :faultstring, :faultactor, :detail).new 
     arg.faultcode = (Struct.new :data).new 'aws:blarg'
@@ -131,5 +132,6 @@ class TestErrorHandler < Test::Unit::TestCase
       assert_equal s, e
     end
   end
+  end # canSOAP?
 
 end

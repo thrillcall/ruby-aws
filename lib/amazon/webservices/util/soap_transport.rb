@@ -1,9 +1,23 @@
 # Copyright:: Copyright (c) 2007 Amazon Technologies, Inc.
 # License::   Apache License, Version 2.0
 
-require 'soap/wsdlDriver'
-require 'amazon/webservices/util/soap_simplifier'
-require 'amazon/webservices/util/soap_transport_header_handler'
+can_load_soap4r = true
+begin
+ require 'soap/wsdlDriver'
+ require 'amazon/webservices/util/soap_simplifier'
+ require 'amazon/webservices/util/soap_transport_header_handler'
+rescue Exception => e
+  can_load_soap4r = false
+  module Amazon ; module WebServices ; module Util
+  class SOAPTransport
+    def self.canSOAP?
+      false
+    end
+  end
+  end ; end ; end
+end
+
+if can_load_soap4r
 
 module Amazon
 module WebServices
@@ -36,3 +50,5 @@ end # SOAPTransport
 end # Amazon::WebServices::Util
 end # Amazon::WebServices
 end # Amazon
+
+end # can_load_soap4r

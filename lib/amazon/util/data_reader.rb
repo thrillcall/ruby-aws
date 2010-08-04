@@ -80,7 +80,14 @@ class DataReader
   
   def parse_csv( raw_data, delim=nil )
     processed = []
-    rows = CSV.parse( raw_data, delim )
+    rows = nil
+    if CSV.const_defined? :Reader
+      rows = CSV.parse( raw_data, delim )
+    else
+      ops = {:row_sep => :auto}
+      ops[:col_sep] = delim unless delim.nil?
+      rows = CSV.parse( raw_data, ops )
+    end
     return parse_rows( rows )
   end
 
@@ -122,7 +129,13 @@ class DataReader
   def generate_rows( headers, rows, dump_header, record_seperator=nil )
     rows.unshift headers if dump_header
     buff = rows.collect { |row|
-      CSV.generate_line( row, record_seperator )
+      if CSV.const_defined? :Reader
+        CSV.generate_line( row, record_seperator )
+      else
+        ops = {:row_sep => ''}
+        ops[:col_sep] = record_seperator unless record_seperator.nil?
+        CSV.generate_line( row, ops )
+      end
     }
     return buff.join("\n")
   end

@@ -26,10 +26,10 @@ class TestLazyResults < Test::Unit::TestCase
 
   def testEnumerable
     result = @simple_lazy.collect
-    assert_equal @simple_data.flatten, result
+    assert_equal @simple_data.flatten, result.to_a
     assert_equal 4, @call_count
     result = @simple_lazy.collect
-    assert_equal @simple_data.flatten, result
+    assert_equal @simple_data.flatten, result.to_a
     assert_equal 4, @call_count
     minus1 = @simple_lazy.collect {|i| i-1}
     minus1.each_with_index {|i,n| assert_equal i, n }
