@@ -2,7 +2,7 @@
 # License::   Apache License, Version 2.0
 
 require 'cgi'
-require 'net/http'
+require 'net/https'
 require 'rexml/document'
 require 'amazon/webservices/util/xml_simplifier'
 
@@ -21,9 +21,11 @@ class RESTTransport
   def initialize( args )
     missing_parameters = REQUIRED_PARAMETERS - args.keys
     raise "Missing paramters: #{missing_parameters.join(',')}" unless missing_parameters.empty?
-    @url = args[:Endpoint]
+    @uri = URI.parse( args[:Endpoint] )
     @httpMethod = resolveHTTPMethod( args[:RestStyle] )
     @version = args[:Version]
+    @ssl = (@uri.scheme == 'https') || (@uri.port == 443) || args[:UseSSL]
+    @skip_ssl_verify = args[:SkipSSLCheck]
 
     agent = RubyAWS::agent( args[:SoftwareName] )
     @headers = {
@@ -49,21 +51,30 @@ class RESTTransport
     params = { :Operation => method, :Version => @version }
     params.merge!( args[0].delete( :Request )[0] )
     params.merge!( args[0] )
-    res = nil
-    if @httpMethod == :GET
-      url = URI.parse( @url + toQueryString(params) )
-      res = Net::HTTP.new( url.host, url.port ).start { |http|
-        http.get( url.request_uri, @headers )
-      }.body
-    else
-      url = URI.parse( @url )
-      res = Net::HTTP.new( url.host, url.port ).start { |http|
-        req = Net::HTTP::Post.new( url.path, @headers )
-        req.form_data = toPostParams( params )
-        req['Content-Type'] = @headers['Content-Type'] # necessary because req.form_data resets Content-Type header
-        http.request( req )
-      }.body
+
+    http = Net::HTTP.new( @uri.host, @uri.port )
+    if @ssl
+      http.use_ssl = true
+      if @skip_ssl_verify
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      else
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
     end
+
+    req = nil
+    if @httpMethod == :GET
+      req = Net::HTTP::Get.new( @uri.request_uri + toQueryString(params), @headers )
+    else
+      req = Net::HTTP::Post.new( @uri.request_uri, @headers )
+      req.form_data = toPostParams( params )
+      req['Content-Type'] = @headers['Content-Type'] # necessary because req.form_data resets Content-Type header
+    end
+
+    res = http.start { |conn|
+      conn.request(req)
+    }.body
+
     xml = REXML::Document.new( res )
     XMLSimplifier.simplify xml
   end
