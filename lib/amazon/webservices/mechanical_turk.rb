@@ -31,7 +31,8 @@ class MechanicalTurk
       else
         args[:Host].to_s
       end
-    newargs = args.merge( :Name => name, :SoftwareName => software, :Host => @host )
+    ssl = ( args[:UseSSL].nil? ? true : args[:UseSSL] )
+    newargs = args.merge( :Name => name, :SoftwareName => software, :Host => @host, :UseSSL => ssl)
     transport = case args[:Transport]
       when :SOAP,/^SOAP/i
         getSOAPTransport(newargs)
@@ -82,32 +83,32 @@ class MechanicalTurk
   end
 
   def getRESTTransport(args)
-    endpoint = findRestEndpoint( args[:Name], args[:Host] )
+    endpoint = findRestEndpoint( args[:Name], args[:Host], args[:UseSSL] )
     require 'amazon/webservices/util/rest_transport.rb'
     @transport = Amazon::WebServices::Util::RESTTransport.new( args.merge( :Endpoint => endpoint ) )
   end
 
   def getSOAPTransport(args)
-    wsdl = findWSDL( args[:Name], args[:Host], args[:Version] )
-    endpoint = findSOAPEndpoint( args[:Name], args[:Host] )
+    wsdl = findWSDL( args[:Name], args[:Host], args[:Version], args[:UseSSL] )
+    endpoint = findSOAPEndpoint( args[:Name], args[:Host], args[:UseSSL] )
     require 'amazon/webservices/util/soap_transport.rb'
     Amazon::WebServices::Util::SOAPTransport.new( args.merge( :Wsdl => wsdl, :Endpoint => endpoint ) )
   end
 
-  def findWSDL( name, host, version )
+  def findWSDL( name, host, version, ssl )
     if version.nil?
-      "http://#{host}/AWSMechanicalTurk/#{name}.wsdl"
+      "#{ssl ? 'https' : 'http'}://#{host}/AWSMechanicalTurk/#{name}.wsdl"
     else
-      "http://#{host}/AWSMechanicalTurk/#{version}/#{name}.wsdl"
+      "#{ssl ? 'https' : 'http'}://#{host}/AWSMechanicalTurk/#{version}/#{name}.wsdl"
     end
   end
 
-  def findSOAPEndpoint( name, host )
-    "http://#{host}/onca/soap?Service=#{name}"
+  def findSOAPEndpoint( name, host, ssl )
+    "#{ssl ? 'https' : 'http'}://#{host}/onca/soap?Service=#{name}"
   end
 
-  def findRestEndpoint( name, host )
-    "http://#{host}/?Service=#{name}"
+  def findRestEndpoint( name, host, ssl )
+    "#{ssl ? 'https' : 'http'}://#{host}/?Service=#{name}"
   end
 
 end # MTurk
