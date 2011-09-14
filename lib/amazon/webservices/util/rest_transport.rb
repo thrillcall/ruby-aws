@@ -75,7 +75,7 @@ class RESTTransport
       conn.request(req)
     }.body
 
-    xml = REXML::Document.new( res )
+    xml = REXML::Document.new( res.force_encoding("UTF-8") )
     XMLSimplifier.simplify xml
   end
 
